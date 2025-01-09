@@ -9,6 +9,7 @@ from kivy.uix.popup import Popup
 from kivy.metrics import dp
 from kivy.app import App
 from kivy.graphics import Color, Rectangle
+from .image_viewer import ImageViewer
 
 class SearchInterface(BoxLayout):
     def __init__(self, **kwargs):
@@ -190,22 +191,33 @@ class SearchInterface(BoxLayout):
             height=dp(30),
             spacing=dp(10)
         )
-        
+
         # Edit button
         edit_button = Button(
             text='Edit Item',
-            size_hint_x=0.5,
+            size_hint_x=0.33,  # Changed from 0.5 to 0.33
             background_normal='',
             background_color=self.styles['colors']['primary'],
             color=self.styles['colors']['text']
         )
         edit_button.bind(on_press=lambda x: self.show_edit_form(item))
         buttons_box.add_widget(edit_button)
-        
+
+        # Image button
+        image_button = Button(
+            text='View/Add Image',
+            size_hint_x=0.33,  # Changed from 0.5 to 0.33
+            background_normal='',
+            background_color=self.styles['colors']['primary'],
+            color=self.styles['colors']['text']
+        )
+        image_button.bind(on_press=lambda x: self.show_image_viewer(item))
+        buttons_box.add_widget(image_button)
+
         # Delete button
         delete_button = Button(
             text='Delete Item',
-            size_hint_x=0.5,
+            size_hint_x=0.33,  # Changed from 0.5 to 0.33
             background_normal='',
             background_color=self.styles['colors']['error'],
             color=self.styles['colors']['text']
@@ -298,3 +310,8 @@ class SearchInterface(BoxLayout):
         with instance.canvas.before:
             Color(*self.styles['colors']['surface'])
             Rectangle(pos=instance.pos, size=instance.size)
+
+    def show_image_viewer(self, item):
+        """Show image viewer popup."""
+        image_viewer = ImageViewer(item['asset_id'])
+        image_viewer.open()

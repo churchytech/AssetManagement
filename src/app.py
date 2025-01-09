@@ -5,6 +5,14 @@ from database import InventoryDatabase
 from ui import InventoryUI
 from components.login import LoginScreen
 from kivy.config import Config
+from kivy.uix.boxlayout import BoxLayout
+
+
+class RootWidget(BoxLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = 'vertical'
+
 
 class InventoryApp(App):
     icon = 'icon.ico'
@@ -12,34 +20,42 @@ class InventoryApp(App):
     def build(self):
         """Initialize the application and return the root widget."""
         Config.set('kivy', 'window_icon', 'icon.ico')
-        
+
+        # Create root widget
+        self.root_widget = RootWidget()
+
         # Start with login screen
         self.login_screen = LoginScreen(callback=self.on_login_success)
-        return self.login_screen
-    
+        self.root_widget.add_widget(self.login_screen)
+
+        return self.root_widget
+
     def on_login_success(self, connection_string):
         """Called when login is successful."""
         try:
             # Initialize database with connection string
             self.inventory_db = InventoryDatabase(connection_string)
-            
+
+            # Create the main UI
+            main_ui = InventoryUI()
+
             # Switch to main UI
-            self.root_window.remove_widget(self.login_screen)
-            self.root_window.add_widget(InventoryUI())
-            
+            self.root_widget.clear_widgets()
+            self.root_widget.add_widget(main_ui)
+
         except Exception as e:
             self.login_screen.error_label.text = str(e)
-    
+
     def get_database(self):
         """Get the database instance."""
         return self.inventory_db
-    
+
     def on_stop(self):
         """Clean up resources when the application closes."""
         if hasattr(self, 'inventory_db'):
             if hasattr(self.inventory_db, 'client'):
                 self.inventory_db.client.close()
-    
+
     def get_common_styles(self):
         """Return common styles used throughout the application."""
         return {
