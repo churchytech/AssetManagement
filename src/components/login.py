@@ -19,7 +19,7 @@ class LoginScreen(BoxLayout):
         
         # Title
         self.add_widget(Label(
-            text='Login to MongoDB',
+            text='Login to Inventory System',
             size_hint_y=None,
             height=dp(50),
             font_size=dp(24),
