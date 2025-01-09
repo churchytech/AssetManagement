@@ -1,16 +1,17 @@
 # database.py
-from pymongo import MongoClient
 from datetime import datetime
-import os
-from dotenv import load_dotenv
+import time
+from datetime import timezone
+from datetime import timedelta
 import csv
+import os
+from pymongo import MongoClient
 
 
 class InventoryDatabase:
     def __init__(self, connection_string):
         """Initialize the MongoDB connection."""
         try:
-            # Connect to MongoDB using provided credentials
             self.client = MongoClient(connection_string)
             self.db = self.client.inventory_db
             self.inventory = self.db.inventory_items
@@ -24,16 +25,17 @@ class InventoryDatabase:
         except Exception as e:
             raise Exception("Failed to connect to database. Please check your credentials.")
 
-    def validate_asset_id(self, asset_id):
-        """Validate the asset ID."""
-        if not asset_id.strip():
-            raise ValueError("Asset ID is required")
+    def get_formatted_time(self):
+        """Get current time in EST format."""
+        # Get current UTC time
+        utc_time = datetime.now(timezone.utc)
 
-        # Check if asset ID already exists
-        if self.get_item(asset_id):
-            raise ValueError(f"Asset ID {asset_id} already exists")
+        # Convert to EST (UTC-5)
+        est_offset = timedelta(hours=-5)
+        est_time = utc_time + est_offset
 
-        return True
+        # Format time
+        return est_time.strftime("%d/%m/%Y %H:%M:%S")
 
     def add_item(self, asset_id, item_name, description="", location="", department="",
                  purchase_price=0.0, condition="New", model_number="", serial_number="",
@@ -54,7 +56,7 @@ class InventoryDatabase:
                 'serial_number': serial_number,
                 'status': status,
                 'notes': notes,
-                'last_updated': datetime.now()
+                'last_updated': self.get_formatted_time()
             }
 
             self.inventory.insert_one(item)
@@ -63,20 +65,13 @@ class InventoryDatabase:
         except Exception as e:
             raise ValueError(f"Error adding item: {str(e)}")
 
-    def get_item(self, asset_id):
-        """Retrieve an item by its asset ID."""
-        item = self.inventory.find_one({'asset_id': asset_id})
-        if item:
-            item['_id'] = str(item['_id'])  # Convert ObjectId to string
-        return item
-
     def update_item(self, asset_id, **kwargs):
         """Update an existing item's details."""
         if not self.get_item(asset_id):
             raise ValueError(f"Asset ID {asset_id} not found")
 
-        # Add last_updated timestamp
-        kwargs['last_updated'] = datetime.now()
+        # Add last_updated timestamp in EST
+        kwargs['last_updated'] = self.get_formatted_time()
 
         try:
             self.inventory.update_one(
@@ -86,6 +81,25 @@ class InventoryDatabase:
             return True
         except Exception as e:
             raise ValueError(f"Error updating item: {str(e)}")
+
+    def validate_asset_id(self, asset_id):
+        """Validate the asset ID."""
+        if not asset_id.strip():
+            raise ValueError("Asset ID is required")
+
+        # Check if asset ID already exists
+        if self.get_item(asset_id):
+            raise ValueError(f"Asset ID {asset_id} already exists")
+
+        return True
+
+
+    def get_item(self, asset_id):
+        """Retrieve an item by its asset ID."""
+        item = self.inventory.find_one({'asset_id': asset_id})
+        if item:
+            item['_id'] = str(item['_id'])  # Convert ObjectId to string
+        return item
 
     def delete_item(self, asset_id):
         """Delete an item from the inventory."""

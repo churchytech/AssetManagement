@@ -3,12 +3,12 @@ from kivy.uix.popup import Popup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.image import Image
+from kivy.uix.label import Label
 from kivy.metrics import dp
 from kivy.core.image import Image as CoreImage
 from kivy.app import App
 import io
-import os
-from kivy.uix.filechooser import FileChooserListView
+from utils.file_chooser import choose_image
 
 
 class ImageViewer(Popup):
@@ -27,7 +27,7 @@ class ImageViewer(Popup):
         # Image display
         self.image_display = Image(
             size_hint=(1, 0.9),
-            fit_mode='contain'  # Replaces allow_stretch and keep_ratio
+            fit_mode='contain'
         )
         content.add_widget(self.image_display)
 
@@ -46,7 +46,7 @@ class ImageViewer(Popup):
             background_color=self.styles['colors']['primary'],
             color=self.styles['colors']['text']
         )
-        self.add_button.bind(on_press=self.show_file_chooser)
+        self.add_button.bind(on_press=self.select_image)
         button_layout.add_widget(self.add_button)
 
         # Remove image button
@@ -71,7 +71,6 @@ class ImageViewer(Popup):
         try:
             image_data = self.app.get_database().get_image(self.asset_id)
             if image_data:
-                # Convert binary data to Kivy image
                 data = io.BytesIO(image_data)
                 img = CoreImage(data, ext='png')
                 self.image_display.texture = img.texture
@@ -82,75 +81,20 @@ class ImageViewer(Popup):
         except Exception as e:
             print(f"Error loading image: {e}")
 
-    def show_file_chooser(self, instance):
-        """Show file chooser popup."""
-        content = BoxLayout(orientation='vertical')
-
-        # File chooser
-        file_chooser = FileChooserListView(
-            path=os.path.expanduser("~"),
-            filters=['*.png', '*.jpg', '*.jpeg', '*.gif', '*.bmp']
-        )
-        content.add_widget(file_chooser)
-
-        # Buttons
-        button_layout = BoxLayout(
-            size_hint_y=None,
-            height=dp(40),
-            spacing=dp(10)
-        )
-
-        # Select button
-        select_button = Button(
-            text='Select',
-            size_hint_x=0.5,
-            background_normal='',
-            background_color=self.styles['colors']['success'],
-            color=self.styles['colors']['text']
-        )
-
-        # Cancel button
-        cancel_button = Button(
-            text='Cancel',
-            size_hint_x=0.5,
-            background_normal='',
-            background_color=self.styles['colors']['error'],
-            color=self.styles['colors']['text']
-        )
-
-        button_layout.add_widget(select_button)
-        button_layout.add_widget(cancel_button)
-        content.add_widget(button_layout)
-
-        # Create popup
-        file_popup = Popup(
-            title='Choose Image',
-            content=content,
-            size_hint=(0.9, 0.9)
-        )
-
-        def on_select(instance):
-            if file_chooser.selection:
-                self.add_image(file_chooser.selection[0])
-                file_popup.dismiss()
-
-        select_button.bind(on_press=on_select)
-        cancel_button.bind(on_press=file_popup.dismiss)
-
-        file_popup.open()
-
-    def add_image(self, file_path):
-        """Add or update image in database."""
-        try:
-            self.app.get_database().add_image(self.asset_id, file_path)
-            self.load_image()
-        except Exception as e:
-            error_popup = Popup(
-                title='Error',
-                content=Label(text=str(e)),
-                size_hint=(0.6, 0.3)
-            )
-            error_popup.open()
+    def select_image(self, instance):
+        """Open native file dialog to select an image."""
+        image_path = choose_image()
+        if image_path:
+            try:
+                self.app.get_database().add_image(self.asset_id, image_path)
+                self.load_image()
+            except Exception as e:
+                error_popup = Popup(
+                    title='Error',
+                    content=Label(text=str(e)),
+                    size_hint=(0.6, 0.3)
+                )
+                error_popup.open()
 
     def remove_image(self, instance):
         """Remove image from database."""
