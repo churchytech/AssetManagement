@@ -1,0 +1,6 @@
+# requirements.txt
+kivy==2.2.1
+pymongo==4.6.1
+python-dotenv==1.0.0  # For handling environment variables
+os
+sys
