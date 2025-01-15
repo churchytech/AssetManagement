@@ -20,6 +20,8 @@
     3. Install requirements: `pip install -r requirements.txt`
     4. Set up your MongoDB connection
     5. Run `python main.py`
+## To add an icon image/logo:
+    Add an .ico file into the src folder and you're all set 
 ## License
 This project is licensed under the Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)
 ### Attribution
