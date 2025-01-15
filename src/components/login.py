@@ -5,6 +5,10 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.metrics import dp
 from kivy.app import App
+from kivy.clock import Clock
+from kivy.uix.progressbar import ProgressBar
+import threading
+
 
 class LoginScreen(BoxLayout):
     def __init__(self, callback, **kwargs):
@@ -13,19 +17,19 @@ class LoginScreen(BoxLayout):
         self.orientation = 'vertical'
         self.padding = dp(20)
         self.spacing = dp(10)
-        
+
         self.app = App.get_running_app()
         self.styles = self.app.get_common_styles()
-        
+
         # Title
         self.add_widget(Label(
-            text='Login to Inventory System',
+            text='Login to MongoDB',
             size_hint_y=None,
             height=dp(50),
             font_size=dp(24),
             color=self.styles['colors']['text']
         ))
-        
+
         # Username input
         self.username_input = TextInput(
             hint_text='Username',
@@ -38,7 +42,7 @@ class LoginScreen(BoxLayout):
             padding=[dp(10), dp(10), 0, 0]
         )
         self.add_widget(self.username_input)
-        
+
         # Password input
         self.password_input = TextInput(
             hint_text='Password',
@@ -52,7 +56,17 @@ class LoginScreen(BoxLayout):
             padding=[dp(10), dp(10), 0, 0]
         )
         self.add_widget(self.password_input)
-        
+
+        # Progress bar (initially hidden)
+        self.progress = ProgressBar(
+            max=100,
+            value=0,
+            size_hint_y=None,
+            height=dp(20)
+        )
+        self.progress.opacity = 0
+        self.add_widget(self.progress)
+
         # Login button
         self.login_button = Button(
             text='Login',
@@ -64,7 +78,7 @@ class LoginScreen(BoxLayout):
         )
         self.login_button.bind(on_press=self.attempt_login)
         self.add_widget(self.login_button)
-        
+
         # Error message label
         self.error_label = Label(
             text='',
@@ -73,23 +87,55 @@ class LoginScreen(BoxLayout):
             height=dp(30)
         )
         self.add_widget(self.error_label)
-        
+
         # Center the form
-        self.add_widget(BoxLayout())  # Adds space at bottom
+        self.add_widget(BoxLayout())
+
+    def show_progress(self, show=True):
+        """Show or hide progress bar and update button state."""
+        self.progress.opacity = 1 if show else 0
+        self.login_button.disabled = show
+        if show:
+            self.error_label.text = 'Connecting to database...'
+            self.error_label.color = self.styles['colors']['text']
+        Clock.schedule_interval(self.update_progress, 0.1) if show else Clock.unschedule(self.update_progress)
+
+    def update_progress(self, dt):
+        """Update progress bar animation."""
+        self.progress.value = (self.progress.value + 5) % 100
+        return True
 
     def attempt_login(self, instance):
         username = self.username_input.text.strip()
         password = self.password_input.text.strip()
-        
+
         if not username or not password:
             self.error_label.text = 'Please enter both username and password'
+            self.error_label.color = self.styles['colors']['error']
             return
-            
+
+        # Show progress and disable button
+        self.show_progress()
+
         # Build MongoDB connection string
         connection_string = f"mongodb+srv://{username}:{password}@cluster0.ce09o.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-        
-        # Try to connect
+
+        # Start connection in separate thread
+        thread = threading.Thread(target=self.connect_to_db, args=(connection_string,))
+        thread.daemon = True
+        thread.start()
+
+    def connect_to_db(self, connection_string):
+        """Connect to database in background thread."""
         try:
-            self.callback(connection_string)
+            # Try to connect
+            Clock.schedule_once(lambda dt: self.callback(connection_string))
         except Exception as e:
-            self.error_label.text = 'Invalid credentials'
+            Clock.schedule_once(lambda dt: self.show_error('Invalid credentials'))
+        finally:
+            Clock.schedule_once(lambda dt: self.show_progress(False))
+
+    def show_error(self, message):
+        """Show error message."""
+        self.error_label.text = message
+        self.error_label.color = self.styles['colors']['error']
