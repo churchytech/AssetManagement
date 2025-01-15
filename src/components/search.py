@@ -172,7 +172,7 @@ class SearchInterface(BoxLayout):
         
         # Status and Condition
         status_cond = Label(
-            text=f"Status: {item['status'] or 'N/A'} | Condition: {item['condition'] or 'N/A'}",
+            text=f"Status: {item['status'] or 'N/A'} | Condition: {item['condition'] or 'N/A'} | Quantity: {item.get('quantity', 1)}",
             color=self.styles['colors']['text'],
             size_hint_y=None,
             height=dp(25),
@@ -180,6 +180,7 @@ class SearchInterface(BoxLayout):
             halign='left',
             valign='middle'
         )
+
         card.bind(width=lambda instance, value: setattr(
             status_cond, 'text_size', (value - dp(20), dp(25))
         ))

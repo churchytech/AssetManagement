@@ -76,6 +76,7 @@ class AddItemForm(BoxLayout):
             ('Location', 'Enter location', False),
             ('Department', 'Enter department', False),
             ('Purchase Price', '0.00', False),
+            ('Quantity', '1', False),  # Add this line
             ('Model Number', 'Enter model number', False),
             ('Serial Number', 'Enter serial number', False)
         ]
@@ -219,6 +220,7 @@ class AddItemForm(BoxLayout):
                 location=self.inputs['Location'].text.strip(),
                 department=self.inputs['Department'].text.strip(),
                 purchase_price=float(self.inputs['Purchase Price'].text or 0),
+                quantity=int(self.inputs['Quantity'].text or 1),  # Add this line
                 condition=self.inputs['Condition'].text,
                 model_number=self.inputs['Model Number'].text.strip(),
                 serial_number=self.inputs['Serial Number'].text.strip(),

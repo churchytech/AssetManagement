@@ -55,6 +55,7 @@ class InventoryDatabase:
                 'model_number': model_number,
                 'serial_number': serial_number,
                 'status': status,
+                'quantity': int(quantity),
                 'notes': notes,
                 'last_updated': self.get_formatted_time()
             }

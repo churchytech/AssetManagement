@@ -45,12 +45,13 @@ class EditItemForm(Popup):
         input_width = content_width * 0.75  # 75% for inputs (leaving 5% for spacing)
 
         fields = [
-            ('Asset ID', 'Enter asset ID', dp(40), False),  # Add this line at the start
+            ('Asset ID', 'Enter asset ID', dp(40), False),
             ('Item Name', 'Enter item name', dp(40), False),
             ('Description', 'Enter description', dp(120), True),
             ('Location', 'Enter location', dp(40), False),
             ('Department', 'Enter department', dp(40), False),
             ('Purchase Price', '0.00', dp(40), False),
+            ('Quantity', '1', dp(40), False),  # Add this line
             ('Model Number', 'Enter model number', dp(40), False),
             ('Serial Number', 'Enter serial number', dp(40), False)
         ]
@@ -194,14 +195,11 @@ class EditItemForm(Popup):
         try:
             db = self.app.get_database()
 
-            # Check if asset ID has changed
             new_asset_id = self.inputs['Asset ID'].text.strip()
             old_asset_id = self.item_data['asset_id']
 
             if new_asset_id != old_asset_id:
-                # Update asset ID first
                 db.update_asset_id(old_asset_id, new_asset_id)
-                # Update the rest of the data with new asset ID
                 db.update_item(
                     new_asset_id,
                     item_name=self.inputs['Item Name'].text.strip(),
@@ -209,6 +207,7 @@ class EditItemForm(Popup):
                     location=self.inputs['Location'].text.strip(),
                     department=self.inputs['Department'].text.strip(),
                     purchase_price=float(self.inputs['Purchase Price'].text or 0),
+                    quantity=int(self.inputs['Quantity'].text or 1),  # Add this line
                     condition=self.inputs['Condition'].text,
                     model_number=self.inputs['Model Number'].text.strip(),
                     serial_number=self.inputs['Serial Number'].text.strip(),
