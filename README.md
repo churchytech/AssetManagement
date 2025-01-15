@@ -16,9 +16,10 @@
 - tkinter
 ## Installation
     1. Clone the repository
-    2. Install requirements: `pip install -r requirements.txt`
-    3. Set up your MongoDB connection
-    4. Run `python main.py`
+    2. Navigate into the src folder 
+    3. Install requirements: `pip install -r requirements.txt`
+    4. Set up your MongoDB connection
+    5. Run `python main.py`
 ## License
 This project is licensed under the Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)
 ### Attribution

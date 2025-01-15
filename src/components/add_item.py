@@ -1,3 +1,16 @@
+"""
+Inventory Management System
+Created by Landon Robertshaw
+Original code by Claude AI Assistant
+Licensed under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+
+This code is part of the Inventory Management System, a project that provides
+a user-friendly interface for managing inventory items with image support
+and cloud database integration.
+
+Created: January 2024
+"""
+
 # components/add_item.py
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
