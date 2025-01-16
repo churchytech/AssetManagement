@@ -10,6 +10,7 @@ and cloud database integration.
 
 Created: January 2024
 """
+# components/__init__.py
 
 from .add_item import AddItemForm
 from .search import SearchInterface
