@@ -80,22 +80,15 @@ class InventoryDatabase:
     def _setup_indexes(self):
         """Setup optimized database indexes."""
         try:
-            # Compound index for common queries
-            self.inventory.create_index([
-                ('asset_id', ASCENDING)
-            ], unique=True)
+            # Unique index for asset_id
+            self.inventory.create_index([('asset_id', ASCENDING)], unique=True)
 
-            # Text index for search operations
-            self.inventory.create_index([
-                ('item_name', TEXT),
-                ('description', TEXT),
-                ('location', TEXT),
-                ('department', TEXT)
-            ])
-
-            # Additional indexes for common queries
-            self.inventory.create_index([('status', ASCENDING)])
+            # Additional indexes for common queries and sorting
             self.inventory.create_index([('last_updated', DESCENDING)])
+            self.inventory.create_index([('item_name', ASCENDING)])
+            self.inventory.create_index([('department', ASCENDING)])
+            self.inventory.create_index([('location', ASCENDING)])
+            self.inventory.create_index([('status', ASCENDING)])
 
             self.logger.info("Database indexes created successfully")
 
@@ -210,19 +203,19 @@ class InventoryDatabase:
         try:
             # Build query based on search term
             if search_term.strip():
-                # Create regex pattern for partial matching
-                pattern = f".*{search_term}.*"
+                # Make the search term more strict to avoid partial word matches
+                pattern = search_term.strip()
                 query = {
                     '$or': [
-                        {'asset_id': {'$regex': pattern, '$options': 'i'}},
-                        {'item_name': {'$regex': pattern, '$options': 'i'}},
-                        {'description': {'$regex': pattern, '$options': 'i'}},
-                        {'location': {'$regex': pattern, '$options': 'i'}},
-                        {'department': {'$regex': pattern, '$options': 'i'}},
-                        {'model_number': {'$regex': pattern, '$options': 'i'}},
-                        {'serial_number': {'$regex': pattern, '$options': 'i'}},
-                        {'status': {'$regex': pattern, '$options': 'i'}},
-                        {'condition': {'$regex': pattern, '$options': 'i'}}
+                        {'asset_id': {'$regex': f".*{pattern}.*", '$options': 'i'}},
+                        {'item_name': {'$regex': f".*{pattern}.*", '$options': 'i'}},
+                        {'description': {'$regex': f".*{pattern}.*", '$options': 'i'}},
+                        {'location': {'$regex': f".*{pattern}.*", '$options': 'i'}},
+                        {'department': {'$regex': f".*{pattern}.*", '$options': 'i'}},
+                        {'model_number': {'$regex': f".*{pattern}.*", '$options': 'i'}},
+                        {'serial_number': {'$regex': f".*{pattern}.*", '$options': 'i'}},
+                        {'status': {'$regex': f"^{pattern}.*", '$options': 'i'}},  # Start of word only for status
+                        {'condition': {'$regex': f"^{pattern}.*", '$options': 'i'}}  # Start of word only for condition
                     ]
                 }
             else:
@@ -230,6 +223,69 @@ class InventoryDatabase:
                 query = {}
 
             # Calculate pagination
+            skip = (page - 1) * per_page
+
+            # Get total count
+            total_items = self.inventory.count_documents(query)
+
+            # Execute search with sorting
+            cursor = self.inventory.find(
+                query,
+                {'_id': 1, 'asset_id': 1, 'item_name': 1, 'description': 1,
+                 'location': 1, 'department': 1, 'status': 1, 'condition': 1,
+                 'model_number': 1, 'serial_number': 1, 'quantity': 1,
+                 'purchase_price': 1, 'last_updated': 1}
+            ).sort(
+                [('last_updated', DESCENDING)]
+            ).skip(skip).limit(per_page)
+
+            # Process results
+            items = list(cursor)
+            for item in items:
+                item['_id'] = str(item['_id'])
+
+            return {
+                'items': items,
+                'total_items': total_items,
+                'page': page,
+                'total_pages': (total_items + per_page - 1) // per_page,
+                'per_page': per_page
+            }
+
+        except Exception as e:
+            self.logger.error(f"Search error: {e}")
+            raise
+
+            # Calculate pagination
+            skip = (page - 1) * per_page
+
+            # Get total count
+            total_items = self.inventory.count_documents(query)
+
+            # Execute search with sorting - sort by last_updated by default
+            cursor = self.inventory.find(
+                query,
+                {'image': 0}  # Exclude image data
+            ).sort(
+                'last_updated', DESCENDING
+            ).skip(skip).limit(per_page)
+
+            # Process results
+            items = list(cursor)
+            for item in items:
+                item['_id'] = str(item['_id'])
+
+            return {
+                'items': items,
+                'total_items': total_items,
+                'page': page,
+                'total_pages': (total_items + per_page - 1) // per_page,
+                'per_page': per_page
+            }
+
+        except Exception as e:
+            self.logger.error(f"Search error: {e}")
+            raise
             skip = (page - 1) * per_page
 
             # Get total count

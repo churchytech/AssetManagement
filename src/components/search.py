@@ -20,8 +20,11 @@ from kivy.uix.popup import Popup
 from kivy.metrics import dp
 from kivy.app import App
 from kivy.graphics import Color, Rectangle
+from kivy.clock import Clock
 from .image_viewer import ImageViewer
 from .edit_item import EditItemForm
+
+__all__ = ['SearchInterface']
 
 class SearchInterface(BoxLayout):
     def __init__(self, **kwargs):
@@ -43,13 +46,16 @@ class SearchInterface(BoxLayout):
     def setup_interface(self):
         """Setup the main UI components."""
         # Title
-        self.add_widget(Label(
+        title = Label(
             text='Search Inventory',
             size_hint_y=None,
             height=dp(40),
             font_size=dp(20),
-            color=self.styles['colors']['text']
-        ))
+            color=self.styles['colors']['text'],
+            halign='left'
+        )
+        title.bind(size=self._update_label_text_size)
+        self.add_widget(title)
 
         # Search bar container
         search_layout = BoxLayout(
@@ -102,7 +108,11 @@ class SearchInterface(BoxLayout):
         self.results_scroll.add_widget(self.results_grid)
         self.add_widget(self.results_scroll)
 
-        # Pagination controls
+        # Pagination controls at the bottom
+        self.setup_pagination_controls()
+
+    def setup_pagination_controls(self):
+        """Setup pagination controls."""
         self.pagination_layout = BoxLayout(
             size_hint_y=None,
             height=dp(40),
@@ -168,44 +178,16 @@ class SearchInterface(BoxLayout):
                 self.show_message('No items found')
                 return
 
-            # Add results count
-            self.results_grid.add_widget(Label(
+            # Add results count label with left alignment
+            count_label = Label(
                 text=f"Found {results['total_items']} item(s) - Page {self.current_page} of {self.total_pages}",
                 color=self.styles['colors']['text'],
                 size_hint_y=None,
-                height=dp(30)
-            ))
-
-            # Display results
-            for item in results['items']:
-                self.add_result_card(item)
-
-        except Exception as e:
-            self.show_message(f'Error: {str(e)}')
-
-        try:
-            # Get paginated results
-            results = self.app.get_database().search_items(
-                search_term,
-                page=self.current_page,
-                per_page=self.items_per_page
+                height=dp(30),
+                halign='left'
             )
-
-            # Update pagination info
-            self.total_pages = results['total_pages']
-            self.update_pagination_controls()
-
-            if not results['items']:
-                self.show_message('No items found')
-                return
-
-            # Add results count
-            self.results_grid.add_widget(Label(
-                text=f"Found {results['total_items']} item(s) - Page {self.current_page} of {self.total_pages}",
-                color=self.styles['colors']['text'],
-                size_hint_y=None,
-                height=dp(30)
-            ))
+            count_label.bind(size=self._update_label_text_size)
+            self.results_grid.add_widget(count_label)
 
             # Display results
             for item in results['items']:
@@ -232,12 +214,16 @@ class SearchInterface(BoxLayout):
 
         # Header with ID and Name
         header = BoxLayout(size_hint_y=None, height=dp(30))
+
+        # ID Label
         header.add_widget(Label(
             text=f"ID: {item['asset_id']}",
             bold=True,
             color=self.styles['colors']['primary'],
             size_hint_x=0.3
         ))
+
+        # Name Label
         header.add_widget(Label(
             text=item['item_name'],
             bold=True,
@@ -248,37 +234,45 @@ class SearchInterface(BoxLayout):
             valign='middle',
             shorten=True
         ))
+
         card.add_widget(header)
 
-        # Description
-        desc = Label(
-            text=item['description'] or "No description available",
+        # Description with left alignment and wrapping
+        desc_text = item.get('description', '') or "No description available"
+        desc_label = Label(
+            text=desc_text,
             color=self.styles['colors']['text_secondary'],
             size_hint_y=None,
             height=dp(60),
-            text_size=(card.width - dp(20), dp(60)),
             halign='left',
             valign='top'
         )
-        card.add_widget(desc)
+        desc_label.bind(size=self._update_label_text_size)
+        card.add_widget(desc_label)
 
-        # Location and Department
-        info = Label(
-            text=f"Location: {item['location'] or 'N/A'} | Department: {item['department'] or 'N/A'}",
+        # Location and Department with left alignment
+        info_text = f"Location: {item.get('location', 'N/A')} | Department: {item.get('department', 'N/A')}"
+        info_label = Label(
+            text=info_text,
             color=self.styles['colors']['text'],
             size_hint_y=None,
-            height=dp(25)
+            height=dp(25),
+            halign='left'
         )
-        card.add_widget(info)
+        info_label.bind(size=self._update_label_text_size)
+        card.add_widget(info_label)
 
-        # Status, Condition, and Quantity
-        status = Label(
-            text=f"Status: {item['status']} | Condition: {item['condition']} | Quantity: {item.get('quantity', 1)}",
+        # Status, Condition, and Quantity with left alignment
+        status_text = f"Status: {item.get('status', 'N/A')} | Condition: {item.get('condition', 'N/A')} | Quantity: {item.get('quantity', 1)}"
+        status_label = Label(
+            text=status_text,
             color=self.styles['colors']['text'],
             size_hint_y=None,
-            height=dp(25)
+            height=dp(25),
+            halign='left'
         )
-        card.add_widget(status)
+        status_label.bind(size=self._update_label_text_size)
+        card.add_widget(status_label)
 
         # Buttons
         buttons = BoxLayout(
@@ -323,6 +317,17 @@ class SearchInterface(BoxLayout):
         card.add_widget(buttons)
         self.results_grid.add_widget(card)
 
+    def _update_label_text_size(self, instance, value):
+        """Update label text size for proper text wrapping and alignment."""
+        instance.text_size = (instance.width, instance.height)
+
+    def _update_rect(self, instance, value):
+        """Update background rectangle of a card."""
+        instance.canvas.before.clear()
+        with instance.canvas.before:
+            Color(*self.styles['colors']['surface'])
+            Rectangle(pos=instance.pos, size=instance.size)
+
     def update_pagination_controls(self):
         """Update pagination buttons state."""
         self.prev_button.disabled = self.current_page <= 1
@@ -360,10 +365,11 @@ class SearchInterface(BoxLayout):
             spacing=dp(10)
         )
 
-        content.add_widget(Label(
+        delete_label = Label(
             text=f'Are you sure you want to delete item {item["asset_id"]}?',
             color=self.styles['colors']['text']
-        ))
+        )
+        content.add_widget(delete_label)
 
         buttons = BoxLayout(
             size_hint_y=None,
@@ -375,14 +381,16 @@ class SearchInterface(BoxLayout):
         confirm_btn = Button(
             text='Delete',
             background_normal='',
-            background_color=self.styles['colors']['error']
+            background_color=self.styles['colors']['error'],
+            color=self.styles['colors']['text']
         )
 
         # Cancel button
         cancel_btn = Button(
             text='Cancel',
             background_normal='',
-            background_color=self.styles['colors']['primary']
+            background_color=self.styles['colors']['primary'],
+            color=self.styles['colors']['text']
         )
 
         buttons.add_widget(confirm_btn)
@@ -422,19 +430,15 @@ class SearchInterface(BoxLayout):
     def show_message(self, message):
         """Display a message in the results area."""
         self.results_grid.clear_widgets()
-        self.results_grid.add_widget(Label(
+        message_label = Label(
             text=message,
             color=self.styles['colors']['text'],
             size_hint_y=None,
-            height=dp(40)
-        ))
-
-    def _update_rect(self, instance, value):
-        """Update the background rectangle of a card."""
-        instance.canvas.before.clear()
-        with instance.canvas.before:
-            Color(*self.styles['colors']['surface'])
-            Rectangle(pos=instance.pos, size=instance.size)
+            height=dp(40),
+            halign='left'
+        )
+        message_label.bind(size=self._update_label_text_size)
+        self.results_grid.add_widget(message_label)
 
     def on_search_focus(self, instance, value):
         """Handle search input focus event."""
@@ -444,7 +448,6 @@ class SearchInterface(BoxLayout):
     def on_search_text_change(self, instance, value):
         """Handle search text changes."""
         # Perform search after a short delay
-        from kivy.clock import Clock
         Clock.unschedule(self._delayed_search)  # Cancel any pending search
         Clock.schedule_once(self._delayed_search, 0.5)  # Schedule new search
 
