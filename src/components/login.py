@@ -10,17 +10,15 @@ and cloud database integration.
 
 Created: January 2024
 """
-# components/login.py
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
+from kivy.uix.progressbar import ProgressBar
 from kivy.metrics import dp
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.uix.progressbar import ProgressBar
 import threading
-
 
 class LoginScreen(BoxLayout):
     def __init__(self, callback, **kwargs):
@@ -55,19 +53,41 @@ class LoginScreen(BoxLayout):
         )
         self.add_widget(self.username_input)
 
+        # Password container (for input + toggle button)
+        password_container = BoxLayout(
+            size_hint_y=None,
+            height=dp(40),
+            spacing=dp(5)
+        )
+
         # Password input
         self.password_input = TextInput(
             hint_text='Password',
-            size_hint_y=None,
+            size_hint=(1, None),
             height=dp(40),
             multiline=False,
-            password=True,
+            password=True,  # Start with password hidden
             write_tab=False,
             background_color=self.styles['colors']['surface'],
             foreground_color=self.styles['colors']['text'],
             padding=[dp(10), dp(10), 0, 0]
         )
-        self.add_widget(self.password_input)
+
+        # Visibility toggle button
+        self.visibility_button = Button(
+            text='Show',
+            size_hint=(None, None),
+            size=(dp(50), dp(40)),
+            background_normal='',
+            background_color=self.styles['colors']['surface'],
+            color=self.styles['colors']['text']
+        )
+        self.visibility_button.bind(on_press=self.toggle_password_visibility)
+
+        password_container.add_widget(self.password_input)
+        password_container.add_widget(self.visibility_button)
+
+        self.add_widget(password_container)
 
         # Progress bar (initially hidden)
         self.progress = ProgressBar(
@@ -102,6 +122,11 @@ class LoginScreen(BoxLayout):
 
         # Center the form
         self.add_widget(BoxLayout())
+
+    def toggle_password_visibility(self, instance):
+        """Toggle password visibility."""
+        self.password_input.password = not self.password_input.password
+        self.visibility_button.text = 'Show' if self.password_input.password else 'Hide'
 
     def show_progress(self, show=True):
         """Show or hide progress bar and update button state."""
