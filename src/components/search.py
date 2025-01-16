@@ -153,6 +153,35 @@ class SearchInterface(BoxLayout):
         search_term = self.search_input.text.strip()
 
         try:
+            # Get paginated results
+            results = self.app.get_database().search_items(
+                search_term,
+                page=self.current_page,
+                per_page=self.items_per_page
+            )
+
+            # Update pagination info
+            self.total_pages = results['total_pages']
+            self.update_pagination_controls()
+
+            if not results['items']:
+                self.show_message('No items found')
+                return
+
+            # Add results count
+            self.results_grid.add_widget(Label(
+                text=f"Found {results['total_items']} item(s) - Page {self.current_page} of {self.total_pages}",
+                color=self.styles['colors']['text'],
+                size_hint_y=None,
+                height=dp(30)
+            ))
+
+            # Display results
+            for item in results['items']:
+                self.add_result_card(item)
+
+        except Exception as e:
+            self.show_message(f'Error: {str(e)}')
 
         try:
             # Get paginated results
