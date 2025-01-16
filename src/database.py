@@ -206,15 +206,28 @@ class InventoryDatabase:
             raise
 
     def search_items(self, search_term: str, page: int = 1, per_page: int = 20) -> Dict[str, Any]:
-        """Perform paginated text search on inventory items."""
+        """Perform paginated search with fragment matching."""
         try:
-            # Build text search query
-            query = {
-                '$text': {
-                    '$search': search_term,
-                    '$caseSensitive': False
+            # Build query based on search term
+            if search_term.strip():
+                # Create regex pattern for partial matching
+                pattern = f".*{search_term}.*"
+                query = {
+                    '$or': [
+                        {'asset_id': {'$regex': pattern, '$options': 'i'}},
+                        {'item_name': {'$regex': pattern, '$options': 'i'}},
+                        {'description': {'$regex': pattern, '$options': 'i'}},
+                        {'location': {'$regex': pattern, '$options': 'i'}},
+                        {'department': {'$regex': pattern, '$options': 'i'}},
+                        {'model_number': {'$regex': pattern, '$options': 'i'}},
+                        {'serial_number': {'$regex': pattern, '$options': 'i'}},
+                        {'status': {'$regex': pattern, '$options': 'i'}},
+                        {'condition': {'$regex': pattern, '$options': 'i'}}
+                    ]
                 }
-            } if search_term.strip() else {}
+            else:
+                # Return all items if no search term
+                query = {}
 
             # Calculate pagination
             skip = (page - 1) * per_page

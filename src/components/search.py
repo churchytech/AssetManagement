@@ -69,7 +69,11 @@ class SearchInterface(BoxLayout):
             foreground_color=self.styles['colors']['text'],
             padding=[dp(10), dp(10)]
         )
-        self.search_input.bind(on_text_validate=self.perform_search)
+        self.search_input.bind(
+            on_text_validate=self.perform_search,
+            focus=self.on_search_focus,
+            text=self.on_search_text_change
+        )
         search_layout.add_widget(self.search_input)
 
         # Search button
@@ -148,9 +152,7 @@ class SearchInterface(BoxLayout):
         self.results_grid.clear_widgets()
         search_term = self.search_input.text.strip()
 
-        if not search_term:
-            self.show_message('Please enter a search term')
-            return
+        try:
 
         try:
             # Get paginated results
@@ -404,3 +406,19 @@ class SearchInterface(BoxLayout):
         with instance.canvas.before:
             Color(*self.styles['colors']['surface'])
             Rectangle(pos=instance.pos, size=instance.size)
+
+    def on_search_focus(self, instance, value):
+        """Handle search input focus event."""
+        if value:  # When focused
+            self.perform_search(None)
+
+    def on_search_text_change(self, instance, value):
+        """Handle search text changes."""
+        # Perform search after a short delay
+        from kivy.clock import Clock
+        Clock.unschedule(self._delayed_search)  # Cancel any pending search
+        Clock.schedule_once(self._delayed_search, 0.5)  # Schedule new search
+
+    def _delayed_search(self, dt):
+        """Perform delayed search."""
+        self.perform_search(None)
