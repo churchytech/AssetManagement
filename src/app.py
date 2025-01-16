@@ -54,9 +54,14 @@ class InventoryApp(App):
             # Switch to main UI
             self.root_widget.clear_widgets()
             self.root_widget.add_widget(main_ui)
-
         except Exception as e:
-            self.login_screen.error_label.text = str(e)
+            # More specific error handling
+            error_msg = str(e)
+            if "Authentication failed" in error_msg:
+                error_msg = "Invalid credentials. Please check your username and password."
+            elif "connection" in error_msg.lower():
+                error_msg = "Unable to connect to database. Please check your internet connection."
+            self.login_screen.error_label.text = error_msg
 
     def get_database(self):
         """Get the database instance."""

@@ -30,9 +30,17 @@ class ExportInterface(BoxLayout):
         self.app = App.get_running_app()
         self.styles = self.app.get_common_styles()
         
+        # Initialize message label (needs to be created before setup_interface)
+        self.message_label = Label(
+            text='',
+            size_hint_y=None,
+            height=dp(40),
+            color=self.styles['colors']['text']
+        )
+
         # Setup the export interface
         self.setup_interface()
-    
+
     def setup_interface(self):
         """Create the export interface layout."""
         # Title
@@ -43,7 +51,7 @@ class ExportInterface(BoxLayout):
             font_size=dp(20),
             color=self.styles['colors']['text']
         ))
-        
+
         # File name input section
         filename_layout = BoxLayout(
             orientation='vertical',
@@ -51,7 +59,7 @@ class ExportInterface(BoxLayout):
             height=dp(80),
             spacing=dp(5)
         )
-        
+
         filename_layout.add_widget(Label(
             text='Export Filename:',
             size_hint_y=None,
@@ -59,10 +67,10 @@ class ExportInterface(BoxLayout):
             color=self.styles['colors']['text'],
             halign='left'
         ))
-        
+
         # Generate default filename
         default_filename = f"inventory_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        
+
         self.filename_input = TextInput(
             text=default_filename,
             multiline=False,
@@ -70,11 +78,11 @@ class ExportInterface(BoxLayout):
             height=dp(40),
             background_color=self.styles['colors']['surface'],
             foreground_color=self.styles['colors']['text'],
-            padding=(dp(10), dp(10))
+            padding=[dp(10), dp(10)]
         )
         filename_layout.add_widget(self.filename_input)
         self.add_widget(filename_layout)
-        
+
         # Stats preview
         self.stats_layout = BoxLayout(
             orientation='vertical',
@@ -83,7 +91,7 @@ class ExportInterface(BoxLayout):
             padding=[0, dp(10)],
             height=dp(150)
         )
-        
+
         self.stats_layout.add_widget(Label(
             text='Export Preview:',
             size_hint_y=None,
@@ -91,10 +99,11 @@ class ExportInterface(BoxLayout):
             color=self.styles['colors']['text'],
             halign='left'
         ))
-        
+
+        # Update stats preview
         self.update_stats_preview()
         self.add_widget(self.stats_layout)
-        
+
         # Export button
         export_button = Button(
             text='Export to CSV',
@@ -107,22 +116,14 @@ class ExportInterface(BoxLayout):
         )
         export_button.bind(on_press=self.perform_export)
         self.add_widget(export_button)
-        
-        # Message area
-        self.message_label = Label(
-            text='',
-            size_hint_y=None,
-            height=dp(40),
-            color=self.styles['colors']['text']
-        )
+
+        # Add message label to layout
         self.add_widget(self.message_label)
-    
+
     def update_stats_preview(self):
         """Update the statistics preview."""
         try:
-            stats = self.app.get_database().get_statistics()
-            
-            # Clear previous stats
+            # Clear previous stats except title
             self.stats_layout.clear_widgets()
             self.stats_layout.add_widget(Label(
                 text='Export Preview:',
@@ -131,64 +132,71 @@ class ExportInterface(BoxLayout):
                 color=self.styles['colors']['text'],
                 halign='left'
             ))
-            
+
+            # Get stats from database
+            stats = self.app.get_database().get_statistics()
+
             # Add stats
             stats_text = [
                 f"Total Items: {stats['total_items']}",
                 f"Total Value: ${stats['total_value']:.2f}",
                 f"Departments: {len(stats['items_by_department'])}",
-                f"Conditions: {len(stats['items_by_condition'])}"
+                f"Item Conditions: {len(stats['items_by_condition'])}"
             ]
-            
+
             for text in stats_text:
                 self.stats_layout.add_widget(Label(
                     text=text,
                     size_hint_y=None,
                     height=dp(25),
-                    color=self.styles['colors']['text_secondary']
+                    color=self.styles['colors']['text_secondary'],
+                    halign='left'
                 ))
-                
+
         except Exception as e:
             self.show_message(f"Error loading preview: {str(e)}", 'error')
-    
+
     def perform_export(self, instance):
         """Execute the export operation."""
         try:
             filename = self.filename_input.text.strip()
-            
+
             # Validate filename
             if not filename:
                 raise ValueError("Please enter a filename")
-            
+
             if not filename.endswith('.csv'):
                 filename += '.csv'
-            
+
+            # Show progress message
+            self.show_message('Exporting data...', 'info')
+
             # Perform export
             filepath = self.app.get_database().export_to_csv(filename)
-            
+
             # Show success message with file path
             success_layout = BoxLayout(
                 orientation='vertical',
                 spacing=dp(10),
                 padding=dp(10)
             )
-            
+
             success_layout.add_widget(Label(
                 text='✓ Export Successful!',
                 color=self.styles['colors']['success'],
                 font_size=dp(18)
             ))
-            
+
             success_layout.add_widget(Label(
                 text=f'File saved as:\n{os.path.abspath(filepath)}',
                 color=self.styles['colors']['text'],
                 font_size=dp(14)
             ))
-            
+
             # Clear current widgets and show success
             self.clear_widgets()
             self.add_widget(success_layout)
-            
+
             # Add return button
             return_button = Button(
                 text='Export Another File',
@@ -201,10 +209,10 @@ class ExportInterface(BoxLayout):
             )
             return_button.bind(on_press=lambda x: self.setup_interface())
             self.add_widget(return_button)
-            
+
         except Exception as e:
             self.show_message(str(e), 'error')
-    
+
     def show_message(self, message, message_type='info'):
         """Display a message to the user."""
         color = {
@@ -212,6 +220,6 @@ class ExportInterface(BoxLayout):
             'error': self.styles['colors']['error'],
             'info': self.styles['colors']['text']
         }.get(message_type, self.styles['colors']['text'])
-        
+
         self.message_label.text = message
-        self.message_label.color = color 
+        self.message_label.color = color

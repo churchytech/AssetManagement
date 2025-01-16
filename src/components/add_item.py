@@ -223,31 +223,52 @@ class AddItemForm(BoxLayout):
         self.remove_image_button.disabled = True
 
     def submit_form(self, instance):
+        """Submit form with improved validation."""
         try:
+            # Validate required fields
+            asset_id = self.inputs['Asset ID'].text.strip()
+            item_name = self.inputs['Item Name'].text.strip()
+
+            if not asset_id or not item_name:
+                raise ValueError("Asset ID and Item Name are required")
+
+            # Get database instance
             db = self.app.get_database()
 
-            db.add_item(
-                asset_id=self.inputs['Asset ID'].text.strip(),
-                item_name=self.inputs['Item Name'].text.strip(),
-                description=self.inputs['Description'].text.strip(),
-                location=self.inputs['Location'].text.strip(),
-                department=self.inputs['Department'].text.strip(),
-                purchase_price=float(self.inputs['Purchase Price'].text or 0),
-                quantity=int(self.inputs['Quantity'].text or 1),  # Add this line
-                condition=self.inputs['Condition'].text,
-                model_number=self.inputs['Model Number'].text.strip(),
-                serial_number=self.inputs['Serial Number'].text.strip(),
-                status=self.inputs['Status'].text
-            )
+            # Prepare item data
+            item_data = {
+                'asset_id': asset_id,
+                'item_name': item_name,
+                'description': self.inputs['Description'].text.strip(),
+                'location': self.inputs['Location'].text.strip(),
+                'department': self.inputs['Department'].text.strip(),
+                'purchase_price': float(self.inputs['Purchase Price'].text or 0),
+                'quantity': int(self.inputs['Quantity'].text or 1),
+                'condition': self.inputs['Condition'].text,
+                'model_number': self.inputs['Model Number'].text.strip(),
+                'serial_number': self.inputs['Serial Number'].text.strip(),
+                'status': self.inputs['Status'].text
+            }
 
+            # Add item to database
+            db.add_item(**item_data)
+
+            # Handle image if selected
             if self.selected_image_path:
-                db.add_image(self.inputs['Asset ID'].text.strip(), self.selected_image_path)
+                try:
+                    db.add_image(asset_id, self.selected_image_path)
+                except Exception as img_error:
+                    self.show_message(f"Item saved but image upload failed: {str(img_error)}", 'warning')
+                    return
 
+            # Clear form and show success message
             self.clear_form()
             self.show_message("Item added successfully!", 'success')
 
+        except ValueError as ve:
+            self.show_message(str(ve), 'error')
         except Exception as e:
-            self.show_message(str(e), 'error')
+            self.show_message(f"Error: {str(e)}", 'error')
 
     def clear_form(self):
         for input_field in self.inputs.values():
