@@ -2,3 +2,8 @@ Edit/Delete functionality for existing items (done)
 Image attachment capability
 Barcode/QR code scanning
 Reports and analytics
+
+
+
+
+make a kivy program maker to make things like this

@@ -121,9 +121,9 @@ class ExportInterface(BoxLayout):
         self.add_widget(self.message_label)
 
     def update_stats_preview(self):
-        """Update the statistics preview."""
+        """Update the statistics preview using cached stats."""
         try:
-            # Clear previous stats except title
+            # Clear previous stats
             self.stats_layout.clear_widgets()
             self.stats_layout.add_widget(Label(
                 text='Export Preview:',
@@ -133,15 +133,15 @@ class ExportInterface(BoxLayout):
                 halign='left'
             ))
 
-            # Get stats from database
-            stats = self.app.get_database().get_statistics()
+            # Get cached stats
+            stats = self.app.get_database().get_cached_stats()
 
             # Add stats
             stats_text = [
                 f"Total Items: {stats['total_items']}",
                 f"Total Value: ${stats['total_value']:.2f}",
-                f"Departments: {len(stats['items_by_department'])}",
-                f"Item Conditions: {len(stats['items_by_condition'])}"
+                f"Departments: {stats['departments']}",
+                f"Item Conditions: {stats['conditions']}"
             ]
 
             for text in stats_text:

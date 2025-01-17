@@ -121,6 +121,42 @@ class InventoryDatabase:
         return True
 
     @retry_operation()
+    def update_stats_cache(self):
+        """Update the cached statistics."""
+        try:
+            stats = {
+                'total_items': self.inventory.count_documents({}),
+                'total_value': sum(item.get('purchase_price', 0)
+                                   for item in self.inventory.find({}, {'purchase_price': 1})),
+                'departments': len(self.inventory.distinct('department')),
+                'conditions': len(self.inventory.distinct('condition')),
+                'last_updated': self.get_formatted_time()
+            }
+
+            # Store or update stats in a separate collection
+            self.db.stats_cache.replace_one({}, stats, upsert=True)
+            return stats
+
+        except Exception as e:
+            self.logger.error(f"Error updating stats cache: {e}")
+            raise
+
+    def get_cached_stats(self):
+        """Get cached statistics, update if too old."""
+        try:
+            # Get cached stats
+            cached = self.db.stats_cache.find_one()
+
+            if not cached:
+                # No cache exists, create it
+                return self.update_stats_cache()
+
+            return cached
+
+        except Exception as e:
+            self.logger.error(f"Error getting cached stats: {e}")
+            raise
+
     def add_item(self, asset_id: str, item_name: str, **kwargs) -> bool:
         """Add a new item with improved validation and error handling."""
         try:
@@ -149,6 +185,10 @@ class InventoryDatabase:
 
             result = self.inventory.insert_one(item)
             self.logger.info(f"Added item with ID: {asset_id}")
+
+            # Update stats cache after adding item
+            self.update_stats_cache()
+
             return bool(result.inserted_id)
 
         except DuplicateKeyError:
@@ -171,7 +211,12 @@ class InventoryDatabase:
                 {'asset_id': asset_id},
                 {'$set': kwargs}
             )
+
+            # Update stats cache after updating item
+            self.update_stats_cache()
+
             return result.modified_count > 0
+
         except Exception as e:
             self.logger.error(f"Error updating item: {e}")
             raise
@@ -193,7 +238,12 @@ class InventoryDatabase:
             result = self.inventory.delete_one({'asset_id': asset_id})
             if result.deleted_count == 0:
                 raise ValueError(f"Asset ID {asset_id} not found")
+
+            # Update stats cache after deleting item
+            self.update_stats_cache()
+
             return True
+
         except Exception as e:
             self.logger.error(f"Error deleting item: {e}")
             raise
